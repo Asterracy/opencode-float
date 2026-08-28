@@ -1,0 +1,208 @@
+* { box-sizing: border-box; }
+
+/* hidden 属性必须赢过任何 display 规则 */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-size: 13px;
+  color: #1c1c1e;
+}
+
+#app {
+  background: rgba(250, 250, 250, 0.97);
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 6px 10px 10px;
+}
+
+.drag { -webkit-app-region: drag; }
+.nodrag, button, select, textarea { -webkit-app-region: no-drag; }
+
+/* ---------- 顶栏 ---------- */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 6px;
+}
+.grip { color: #b0b0b5; font-size: 12px; user-select: none; }
+.spacer { flex: 1; }
+
+#modelSelect {
+  max-width: 210px;
+  font-size: 12px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.05);
+  color: inherit;
+  outline: none;
+}
+
+.icon {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6e6e73;
+  line-height: 1;
+}
+.icon:hover { background: rgba(0, 0, 0, 0.07); }
+
+/* ---------- 回复区 ---------- */
+#replyArea {
+  margin-bottom: 8px;
+}
+
+#errorBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fdecea;
+  color: #b3261e;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.mini {
+  border: 1px solid rgba(179, 38, 30, 0.4);
+  background: transparent;
+  color: #b3261e;
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 1px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mini:hover { background: rgba(179, 38, 30, 0.08); }
+
+#thinking {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8a8a8e;
+  font-size: 12px;
+  padding: 3px 0;
+  border-left: 2px solid #1e90ff;
+  padding-left: 8px;
+}
+.dots i { font-style: normal; animation: blink 1.2s infinite; }
+.dots .d2 { animation-delay: 0.2s; }
+.dots .d3 { animation-delay: 0.4s; }
+@keyframes blink { 0%, 100% { opacity: 0.15; } 50% { opacity: 1; } }
+
+#thinking.done { color: #34a853; }
+#thinking.done .dots { display: none; }
+
+#replyBox {
+  max-height: 160px;
+  overflow-y: auto;
+  border-left: 2px solid #1e90ff;
+  padding-left: 8px;
+}
+#replyText {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.45;
+  min-height: 18px;
+}
+
+/* ---------- 图片缩略图 ---------- */
+#thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.thumb {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .rm {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  border: none;
+  border-radius: 0 0 0 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 9px;
+  line-height: 15px;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ---------- 输入区 ---------- */
+#inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+#attachBtn, #sendBtn {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: none;
+  line-height: 1;
+}
+#attachBtn:hover, #sendBtn:hover { background: rgba(0, 0, 0, 0.07); }
+#sendBtn:disabled, #attachBtn:disabled { opacity: 0.35; cursor: default; }
+
+#input {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font: inherit;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  padding: 7px 10px;
+  line-height: 1.35;
+  max-height: 92px;
+}
+#input::placeholder { color: #a0a0a5; }
+#input:disabled { opacity: 0.6; }
+
+#app.dropping { outline: 2px dashed #1e90ff; outline-offset: -4px; }
+
+/* ---------- 暗色模式 ---------- */
+@media (prefers-color-scheme: dark) {
+  html, body { color: #e8e8ea; }
+  #app {
+    background: rgba(34, 34, 37, 0.97);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  #modelSelect { background: rgba(255, 255, 255, 0.08); }
+  .icon { color: #a8a8ad; }
+  .icon:hover { background: rgba(255, 255, 255, 0.1); }
+  #input { background: rgba(255, 255, 255, 0.08); }
+  #input::placeholder { color: #77777c; }
+  #attachBtn:hover, #sendBtn:hover { background: rgba(255, 255, 255, 0.1); }
+  #errorBar { background: rgba(179, 38, 30, 0.25); color: #ff9a92; }
+  .mini { color: #ff9a92; border-color: rgba(255, 154, 146, 0.5); }
+  .mini:hover { background: rgba(255, 154, 146, 0.12); }
+}

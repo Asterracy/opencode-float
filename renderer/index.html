@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file:; style-src 'self'" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="topbar" class="drag">
+      <span class="grip">⠿</span>
+      <select id="modelSelect" class="nodrag" title="选择模型" disabled></select>
+      <span class="spacer"></span>
+      <button id="pinBtn" class="icon nodrag" title="始终置顶">📌</button>
+      <button id="collapseBtn" class="icon nodrag" title="折叠 / 展开">—</button>
+      <button id="closeBtn" class="icon nodrag" title="退出">✕</button>
+    </div>
+
+    <div id="replyArea" hidden>
+      <div id="errorBar" hidden>
+        <span id="errorText"></span>
+        <span class="spacer"></span>
+        <button id="switchModelBtn" class="mini" hidden>切换模型</button>
+        <button id="retryBtn" class="mini" hidden>重试</button>
+      </div>
+      <div id="thinking" hidden>
+        <span id="thinkingLabel">思考中</span>
+        <span class="dots"><i class="d1">·</i><i class="d2">·</i><i class="d3">·</i></span>
+      </div>
+      <div id="replyBox"><div id="replyText"></div></div>
+    </div>
+
+    <div id="thumbs" hidden></div>
+
+    <div id="inputRow">
+      <button id="attachBtn" title="添加图片">📎</button>
+      <textarea id="input" rows="1" placeholder="输入消息，Enter 发送"></textarea>
+      <button id="sendBtn" title="发送">↗</button>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

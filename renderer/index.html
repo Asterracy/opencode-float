@@ -12,8 +12,20 @@
       <select id="modelSelect" class="nodrag" title="选择模型" disabled></select>
       <span class="spacer"></span>
       <button id="pinBtn" class="icon nodrag" title="始终置顶">📌</button>
+      <button id="settingsBtn" class="icon nodrag" title="服务设置">⚙</button>
       <button id="collapseBtn" class="icon nodrag" title="折叠 / 展开">—</button>
       <button id="closeBtn" class="icon nodrag" title="退出">✕</button>
+    </div>
+
+    <div id="settings" hidden>
+      <div class="set-row"><label>服务地址</label><input id="setUrl" placeholder="http://127.0.0.1:4096/api" spellcheck="false"></div>
+      <div class="set-row"><label>用户名</label><input id="setUser" placeholder="opencode（默认）" spellcheck="false"></div>
+      <div class="set-row"><label>密码</label><input id="setPass" type="password" placeholder="留空则读本机 service.json"></div>
+      <div id="setMsg"></div>
+      <div class="set-actions">
+        <button id="setCancel" class="mini">取消</button>
+        <button id="setSave" class="mini primary">检测并保存</button>
+      </div>
     </div>
 
     <div id="replyArea" hidden>

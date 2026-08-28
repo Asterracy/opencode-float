@@ -23,7 +23,13 @@ npm start        # 开发模式
 npm run dist     # 打包自包含 .app（产物在 release/mac-arm64/）
 ```
 
-要求：本机跑着 OpenCode 服务，且 `~/.config/opencode/service.json` 存在（Basic Auth 密码从这里的 `password` 字段读取，不会让你手填）。
+要求：本机跑着 OpenCode 服务。
+
+## 服务发现与连接
+
+启动时自动探测常见端口（4096 → 8080 → 8081 → 8000 → 3000），找到可用的 `/api` 即连接并记住；**鉴权可选**——本机存在 `~/.config/opencode/service.json` 时自动读取其中 `password` 作为 Basic Auth 密码，没有则尝试无鉴权连接。
+
+对不上时点窗口顶栏的 **⚙**：可手动填写服务地址（如 `http://127.0.0.1:4096/api`）、用户名、密码，点"检测并保存"即时验证。地址留空保存则恢复自动发现。
 
 ## 状态持久化
 

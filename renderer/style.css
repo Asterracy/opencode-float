@@ -189,6 +189,34 @@ html, body {
 
 #app.dropping { outline: 2px dashed #1e90ff; outline-offset: -4px; }
 
+/* ---------- 服务设置面板 ---------- */
+#settings {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.set-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.set-row label { width: 50px; flex: none; color: #6e6e73; font-size: 12px; }
+.set-row input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  outline: none;
+}
+#setMsg { min-height: 14px; font-size: 11px; margin: 0 0 4px; color: #6e6e73; }
+#setMsg.ok { color: #34a853; }
+#setMsg.err { color: #b3261e; }
+.set-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.mini.primary { background: #1e90ff; border-color: #1e90ff; color: #fff; }
+.mini.primary:hover { background: #1877d6; }
+
 /* ---------- 暗色模式 ---------- */
 @media (prefers-color-scheme: dark) {
   html, body { color: #e8e8ea; }
@@ -202,6 +230,11 @@ html, body {
   #input { background: rgba(255, 255, 255, 0.08); }
   #input::placeholder { color: #77777c; }
   #attachBtn:hover, #sendBtn:hover { background: rgba(255, 255, 255, 0.1); }
+  #settings { background: rgba(255, 255, 255, 0.06); }
+  .set-row label { color: #a8a8ad; }
+  .set-row input { background: rgba(255, 255, 255, 0.1); }
+  #setMsg { color: #a8a8ad; }
+  #setMsg.err { color: #ff9a92; }
   #errorBar { background: rgba(179, 38, 30, 0.25); color: #ff9a92; }
   .mini { color: #ff9a92; border-color: rgba(255, 154, 146, 0.5); }
   .mini:hover { background: rgba(255, 154, 146, 0.12); }

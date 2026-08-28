@@ -4,6 +4,14 @@ const els = {
   app: $('app'),
   modelSelect: $('modelSelect'),
   pinBtn: $('pinBtn'),
+  settingsBtn: $('settingsBtn'),
+  settings: $('settings'),
+  setUrl: $('setUrl'),
+  setUser: $('setUser'),
+  setPass: $('setPass'),
+  setMsg: $('setMsg'),
+  setCancel: $('setCancel'),
+  setSave: $('setSave'),
   collapseBtn: $('collapseBtn'),
   closeBtn: $('closeBtn'),
   replyArea: $('replyArea'),
@@ -414,6 +422,21 @@ async function init() {
     els.collapseBtn.textContent = '＋';
   }
 
+  // 服务发现：优先用已保存地址，否则按常见端口探测
+  const d = await window.opencodeFloat.discoverServer();
+  if (!d.found) {
+    showError(
+      d.authNeeded
+        ? '已发现 OpenCode 服务但鉴权失败，点 ⚙ 填写访问密码'
+        : '未发现 OpenCode 服务，请确认已启动；或点 ⚙ 手动填写服务地址',
+      true
+    );
+    els.retryBtn.hidden = false;
+    els.retryBtn.onclick = () => location.reload();
+    els.switchModelBtn.hidden = true;
+    return;
+  }
+
   const r = await api('GET', '/model');
   state.models = (r.ok && r.json && r.json.data) || [];
   if (!state.models.length) {
@@ -483,6 +506,47 @@ els.retryBtn.addEventListener('click', retry);
 els.switchModelBtn.addEventListener('click', () => {
   els.modelSelect.focus();
   els.modelSelect.title = '请在此切换模型';
+});
+
+// ---------- 服务设置面板 ----------
+els.settingsBtn.addEventListener('click', async () => {
+  if (!els.settings.hidden) {
+    els.settings.hidden = true;
+    resizeToFit();
+    return;
+  }
+  const cfg = await window.opencodeFloat.getConfig();
+  els.setUrl.value = (cfg.server && cfg.server.baseURL) || '';
+  els.setUser.value = (cfg.server && cfg.server.username) || '';
+  els.setPass.value = '';
+  els.setMsg.textContent = '';
+  els.setMsg.className = '';
+  els.settings.hidden = false;
+  resizeToFit();
+});
+els.setCancel.addEventListener('click', () => {
+  els.settings.hidden = true;
+  resizeToFit();
+});
+els.setSave.addEventListener('click', async () => {
+  els.setMsg.textContent = '检测中…';
+  els.setMsg.className = '';
+  const r = await window.opencodeFloat.saveServer({
+    baseURL: els.setUrl.value.trim(),
+    username: els.setUser.value.trim(),
+    password: els.setPass.value,
+  });
+  if (r && r.ok) {
+    els.setMsg.textContent = '已连接 ✓ 重载中…';
+    els.setMsg.className = 'ok';
+    setTimeout(() => location.reload(), 600);
+  } else if (r && r.status === 401) {
+    els.setMsg.textContent = '服务在，但用户名或密码不对';
+    els.setMsg.className = 'err';
+  } else {
+    els.setMsg.textContent = '连不上，请检查地址（需含 /api 路径）';
+    els.setMsg.className = 'err';
+  }
 });
 
 init();

@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('opencodeFloat', {
   api: (req) => ipcRenderer.invoke('api', req),
+  discoverServer: () => ipcRenderer.invoke('discover-server'),
+  saveServer: (s) => ipcRenderer.invoke('save-server', s),
   getConfig: () => ipcRenderer.invoke('config:get'),
   patchConfig: (patch) => ipcRenderer.invoke('config:patch', patch),
   pickImage: () => ipcRenderer.invoke('pick-image'),

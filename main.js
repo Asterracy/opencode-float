@@ -5,7 +5,14 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 
-const API_BASE = 'http://127.0.0.1:8080/api';
+// 服务发现候选地址（按序探测，找到即用）
+const DEFAULT_BASES = [
+  'http://127.0.0.1:4096/api', // opencode serve 默认端口
+  'http://127.0.0.1:8080/api',
+  'http://127.0.0.1:8081/api',
+  'http://127.0.0.1:8000/api',
+  'http://127.0.0.1:3000/api',
+];
 const SERVICE_JSON = path.join(os.homedir(), '.config', 'opencode', 'service.json');
 
 let win = null;
@@ -41,6 +48,7 @@ async function loadConfig() {
       model: { providerID: 'opencode-go', id: 'qwen3.8-flash' },
       window: { x: null, y: null, collapsed: false },
       alwaysOnTop: true,
+      server: null, // {baseURL, username?, password?}；null = 自动发现
     },
     stored
   );
@@ -58,14 +66,42 @@ function scheduleSave() {
   }, 300);
 }
 
+function serverBase() {
+  return (config.server && config.server.baseURL) || DEFAULT_BASES[0];
+}
+
+function serverCreds() {
+  const s = config.server || {};
+  // 密码优先用用户在设置里填的，否则回退到本机 service.json
+  const password = s.password != null ? s.password : readPassword();
+  return { username: s.username || 'opencode', password: password || '' };
+}
+
+async function probeBase(base) {
+  const { username, password } = serverCreds();
+  const attempts = [];
+  if (password) attempts.push({ Authorization: 'Basic ' + Buffer.from(username + ':' + password).toString('base64') });
+  attempts.push({});
+  let authNeeded = false;
+  for (const headers of attempts) {
+    try {
+      const res = await fetch(base + '/model', { headers, signal: AbortSignal.timeout(2500) });
+      if (res.ok) return { ok: true };
+      if (res.status === 401) authNeeded = true;
+      if (res.status !== 404) return { ok: false, status: res.status, authNeeded };
+    } catch {} // 连接拒绝 → 换下一个候选
+  }
+  return { ok: false, authNeeded };
+}
+
 // ---------- IPC: OpenCode API 代理（Basic Auth 留在主进程） ----------
 ipcMain.handle('api', async (_e, { method, path: apiPath, body }) => {
   try {
-    const headers = {
-      Authorization: 'Basic ' + Buffer.from('opencode:' + password).toString('base64'),
-    };
+    const { username, password } = serverCreds();
+    const headers = {};
+    if (password) headers.Authorization = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    const res = await fetch(API_BASE + apiPath, {
+    const res = await fetch(serverBase() + apiPath, {
       method: method || 'GET',
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -75,10 +111,41 @@ ipcMain.handle('api', async (_e, { method, path: apiPath, body }) => {
     try {
       json = text ? JSON.parse(text) : null;
     } catch {}
-    return { ok: res.ok, status: res.status, json };
+    return { ok: res.ok, status: res.status, authNeeded: res.status === 401, json };
   } catch (err) {
     return { ok: false, status: 0, error: String((err && err.message) || err) };
   }
+});
+
+// ---------- IPC: 服务发现 ----------
+ipcMain.handle('discover-server', async () => {
+  const saved = config.server && config.server.baseURL;
+  const candidates = saved ? [saved, ...DEFAULT_BASES.filter((b) => b !== saved)] : [...DEFAULT_BASES];
+  let authHit = false;
+  for (const base of candidates) {
+    const r = await probeBase(base);
+    if (r.ok) {
+      config.server = Object.assign({}, config.server, { baseURL: base });
+      scheduleSave();
+      return { found: base, switched: !!saved && base !== saved, wasSaved: !!saved };
+    }
+    if (r.authNeeded) authHit = true;
+  }
+  return { found: null, authNeeded: authHit };
+});
+
+ipcMain.handle('save-server', async (_e, { baseURL, username, password }) => {
+  if (!baseURL) {
+    config.server = null; // 清空 → 回到自动发现
+  } else {
+    config.server = {
+      baseURL: String(baseURL).replace(/\/+$/, ''),
+      ...(username ? { username } : {}),
+      ...(password ? { password } : {}),
+    };
+  }
+  scheduleSave();
+  return probeBase(serverBase());
 });
 
 // ---------- IPC: 配置 ----------

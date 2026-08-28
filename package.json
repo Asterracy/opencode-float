@@ -6,10 +6,35 @@
   "description": "OpenCode 桌面悬浮对话窗",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --mac --dir"
+  },
+  "build": {
+    "appId": "local.racy.opencode-float",
+    "productName": "OpenCode Float",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "package.json"
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.utilities",
+      "target": "dir",
+      "identity": null,
+      "extendInfo": {
+        "LSUIElement": true
+      }
+    }
   },
   "devDependencies": {
-    "electron": "^38.0.0"
+    "electron": "^38.0.0",
+    "electron-builder": "^26.15.3"
   },
   "allowScripts": {
     "electron@38.8.6": true

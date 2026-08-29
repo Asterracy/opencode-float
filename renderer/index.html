@@ -11,6 +11,12 @@
       <span class="grip">⠿</span>
       <select id="modelSelect" class="nodrag" title="选择模型" disabled></select>
       <span class="spacer"></span>
+      <svg id="ctxRing" class="nodrag" width="15" height="15" viewBox="0 0 36 36">
+        <title id="ctxTitle">上下文用量</title>
+        <circle cx="18" cy="18" r="15" fill="none" stroke-width="4.5" class="ring-bg"/>
+        <circle id="ctxRingFg" cx="18" cy="18" r="15" fill="none" stroke-width="4.5" stroke-linecap="round"
+                pathLength="100" stroke-dasharray="100 100" stroke-dashoffset="100" transform="rotate(-90 18 18)"/>
+      </svg>
       <button id="newChatBtn" class="icon nodrag" title="新会话（服务重启/工具异常时重开）">🔄</button>
       <button id="pinBtn" class="icon nodrag" title="始终置顶">📌</button>
       <button id="settingsBtn" class="icon nodrag" title="服务设置">⚙</button>

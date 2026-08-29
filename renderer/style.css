@@ -34,6 +34,10 @@ html, body {
 .grip { color: #b0b0b5; font-size: 12px; user-select: none; }
 .spacer { flex: 1; }
 
+#ctxRing { flex: none; margin: 0 1px; }
+#ctxRing .ring-bg { stroke: rgba(0, 0, 0, 0.14); }
+#ctxRing .ring-fg { stroke: #34a853; transition: stroke-dashoffset 0.5s ease, stroke 0.5s ease; }
+
 #modelSelect {
   max-width: 210px;
   font-size: 12px;
@@ -225,6 +229,7 @@ html, body {
     border-color: rgba(255, 255, 255, 0.1);
   }
   #modelSelect { background: rgba(255, 255, 255, 0.08); }
+  #ctxRing .ring-bg { stroke: rgba(255, 255, 255, 0.18); }
   .icon { color: #a8a8ad; }
   .icon:hover { background: rgba(255, 255, 255, 0.1); }
   #input { background: rgba(255, 255, 255, 0.08); }

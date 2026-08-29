@@ -3,6 +3,9 @@ const $ = (id) => document.getElementById(id);
 const els = {
   app: $('app'),
   modelSelect: $('modelSelect'),
+  ctxRing: $('ctxRing'),
+  ctxRingFg: $('ctxRingFg'),
+  ctxTitle: $('ctxTitle'),
   newChatBtn: $('newChatBtn'),
   pinBtn: $('pinBtn'),
   settingsBtn: $('settingsBtn'),
@@ -49,6 +52,8 @@ const state = {
   collapsed: false,
   alwaysOnTop: true,
   hasReply: false,
+  contextUsed: 0, // 当前会话已用上下文 tokens
+  contextLimit: 0, // 当前模型上下文上限
 };
 
 const api = (method, path, body) => window.opencodeFloat.api({ method, path, body });
@@ -63,6 +68,39 @@ function assistantTextOf(msg) {
 
 function hasToolParts(msg) {
   return (msg.content || []).some((p) => p.type === 'tool_use' || p.type === 'tool');
+}
+
+// ---------- 上下文用量圆环 ----------
+function fmtTokens(n) {
+  if (n >= 1048576) return (n / 1048576).toFixed(1) + 'M';
+  if (n >= 1024) return (n / 1024).toFixed(1) + 'K';
+  return String(n);
+}
+
+function renderRing() {
+  const pct = state.contextLimit ? Math.min(100, (state.contextUsed / state.contextLimit) * 100) : 0;
+  els.ctxRingFg.style.strokeDashoffset = String(100 - pct);
+  els.ctxRingFg.style.stroke = pct >= 90 ? '#d93025' : pct >= 70 ? '#f0a500' : '#34a853';
+  els.ctxTitle.textContent = state.contextLimit
+    ? `上下文 ${fmtTokens(state.contextUsed)} / ${fmtTokens(state.contextLimit)}（${pct.toFixed(1)}%）`
+    : '上下文用量';
+}
+
+function updateContextUsage(msg) {
+  const t = msg.tokens;
+  if (!t) return;
+  state.contextUsed =
+    (t.input || 0) + (t.output || 0) + (t.reasoning || 0) + ((t.cache && (t.cache.read || 0) + (t.cache.write || 0)) || 0);
+  const mid = msg.model && msg.model.id;
+  const pid = msg.model && msg.model.providerID;
+  const meta = state.models.find((m) => m.id === mid && (!pid || m.providerID === pid));
+  state.contextLimit = (meta && meta.limit && meta.limit.context) || 0;
+  renderRing();
+}
+
+function resetContextUsage() {
+  state.contextUsed = 0;
+  renderRing();
 }
 
 // ---------- 布局 ----------
@@ -233,6 +271,7 @@ async function pollOnce() {
   }
   if (!state.completedSeenAt) state.completedSeenAt = Date.now();
   if (state.shownLen >= text.length && Date.now() - state.completedSeenAt > 3000) {
+    updateContextUsage(latest);
     showDone();
     stopPolling();
   }
@@ -257,6 +296,7 @@ async function createSession(model) {
   }
   state.sessionId = id;
   window.opencodeFloat.patchConfig({ sessionId: id, model });
+  resetContextUsage();
   return true;
 }
 
@@ -492,6 +532,9 @@ async function init() {
     return;
   }
   populateModels(cfg.model);
+  const meta = state.models.find((m) => m.providerID === state.model.providerID && m.id === state.model.id);
+  state.contextLimit = (meta && meta.limit && meta.limit.context) || 0;
+  renderRing();
   hideError();
   await ensureSession(cfg.sessionId);
 }

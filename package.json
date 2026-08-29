@@ -1,7 +1,7 @@
 {
   "name": "opencode-float",
   "productName": "OpenCode Float",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "description": "OpenCode 桌面悬浮对话窗",
   "main": "main.js",

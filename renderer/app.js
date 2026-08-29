@@ -40,7 +40,9 @@ const state = {
   sentAtMs: 0,
   assistantText: '',
   shownLen: 0,
-  stableCount: 0,
+  completedSeenAt: 0, // 本地首次观察到 completed 的时间（规避服务端时钟差）
+  lastSig: '', // 消息列表签名，用于检测活动
+  lastChangeAt: 0,
   pollTimer: null,
   revealTimer: null,
   collapsed: false,
@@ -160,55 +162,86 @@ async function pollOnce() {
   if (!r.ok) return;
 
   const msgs = (r.json && r.json.data) || [];
-  let asst = null;
-  for (const m of msgs) {
-    if (m.type === 'assistant' && normTs(m.time && m.time.created) >= state.sentAtMs) {
-      if (!asst || normTs(m.time.created) > normTs(asst.time && asst.time.created)) asst = m;
-    }
+
+  // 活动检测：列表有任何变化都算"活着"
+  const sig = msgs.map((m) => m.id).join(',') + '|' + JSON.stringify((msgs[msgs.length - 1] || {}).time || {});
+  if (sig !== state.lastSig) {
+    state.lastSig = sig;
+    state.lastChangeAt = Date.now();
   }
 
-  if (!asst) {
-    if (Date.now() - state.sentAtMs > 120000) {
+  // 本轮（发送之后）的 assistant 消息，按时间升序
+  const run = msgs
+    .filter((m) => m.type === 'assistant' && normTs(m.time && m.time.created) >= state.sentAtMs)
+    .sort((a, b) => normTs(a.time && a.time.created) - normTs(b.time && b.time.created));
+  const latest = run[run.length - 1];
+
+  // 还没出现 assistant 消息：模型在排队/思考
+  if (!latest) {
+    if (Date.now() - state.sentAtMs > 180000) {
       stopPolling();
-      showError('等待回复超时，可重试', true);
+      showError('3 分钟没有任何回复，可能出错了，可重试', true);
+    } else if (Date.now() - state.lastChangeAt > 60000) {
+      stopPolling();
+      showError('长时间没有新消息，会话可能已中断，可重试', true);
     }
     return;
   }
 
-  if (asst.retry && asst.retry.error) {
+  if (latest.retry && latest.retry.error) {
     stopPolling();
-    showError(asst.retry.error.message || '模型返回错误（可能限流），建议切换模型', true, { switchModel: true });
+    showError(latest.retry.error.message || '模型返回错误（可能限流），建议切换模型', true, { switchModel: true });
     return;
   }
 
-  const text = assistantTextOf(asst);
-  if (!text) {
-    if (hasToolParts(asst)) {
+  const text = assistantTextOf(latest);
+  const tool = hasToolParts(latest);
+  const completedAt = normTs(latest.time && latest.time.completed);
+
+  // 消息还在流式生成中（无 completed 标记）：有文本就流式渲染，没有则思考中
+  if (!completedAt) {
+    if (text) {
+      hideThinking();
+      streamRender(text);
+    } else if (tool) {
       showWaiting('正在处理…');
     } else {
-      // 既没文本也没工具调用，连续多个周期仍如此 → 视为空回复
-      state.emptyCount = (state.emptyCount || 0) + 1;
-      if (state.emptyCount >= 4) {
-        stopPolling();
-        showDone('模型无回复');
-      }
+      showWaiting('思考中');
     }
     return;
   }
-  hideThinking();
 
+  // 这条消息已写完。若包含工具调用，工具正在执行、后面还会有新消息
+  if (tool) {
+    if (text) streamRender(text); // lead-in 过渡话术也展示出来
+    showWaiting('正在处理…');
+    return;
+  }
+
+  // 写完了但没有文本 → 空回复（准确信号，无需等待计数）
+  if (!text) {
+    showDone('模型无回复');
+    stopPolling();
+    return;
+  }
+
+  // 最终回复：等打字机追上，且写完后再静默 3 秒无后续（防止中间话术被误判为终点）
   if (text !== state.assistantText) {
     state.assistantText = text;
-    state.stableCount = 0;
-  } else {
-    state.stableCount++;
+    ensureReveal();
   }
-  ensureReveal();
-
-  // 文本长度连续 2 个轮询周期不变且已全部展示 → 完成
-  if (state.stableCount >= 2 && state.shownLen >= text.length) {
+  if (!state.completedSeenAt) state.completedSeenAt = Date.now();
+  if (state.shownLen >= text.length && Date.now() - state.completedSeenAt > 3000) {
     showDone();
     stopPolling();
+  }
+}
+
+// 流式渲染（最终完成前的中间态也复用）
+function streamRender(text) {
+  if (text !== state.assistantText) {
+    state.assistantText = text;
+    ensureReveal();
   }
 }
 
@@ -279,8 +312,9 @@ async function send() {
   state.sentAtMs = Date.now() - 3000; // 容忍与服务端少量时钟差
   state.assistantText = '';
   state.shownLen = 0;
-  state.stableCount = 0;
-  state.emptyCount = 0;
+  state.completedSeenAt = 0;
+  state.lastSig = '';
+  state.lastChangeAt = Date.now();
   state.sending = true;
   setBusy(true);
   showWaiting('思考中');
@@ -294,8 +328,9 @@ async function retry() {
     state.sentAtMs = Date.now() - 3000;
     state.assistantText = '';
     state.shownLen = 0;
-    state.stableCount = 0;
-    state.emptyCount = 0;
+    state.completedSeenAt = 0;
+    state.lastSig = '';
+    state.lastChangeAt = Date.now();
     state.sending = true;
     setBusy(true);
     showWaiting('思考中');

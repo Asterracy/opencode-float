@@ -12,6 +12,7 @@ const els = {
   setMsg: $('setMsg'),
   setCancel: $('setCancel'),
   setSave: $('setSave'),
+  setRescan: $('setRescan'),
   collapseBtn: $('collapseBtn'),
   closeBtn: $('closeBtn'),
   replyArea: $('replyArea'),
@@ -425,15 +426,23 @@ async function init() {
   // 服务发现：优先用已保存地址，否则按常见端口探测
   const d = await window.opencodeFloat.discoverServer();
   if (!d.found) {
+    // 未自动发现 → 自动展开设置面板，引导用户手填
     showError(
       d.authNeeded
-        ? '已发现 OpenCode 服务但鉴权失败，点 ⚙ 填写访问密码'
-        : '未发现 OpenCode 服务，请确认已启动；或点 ⚙ 手动填写服务地址',
-      true
+        ? '已发现 OpenCode 服务但鉴权失败，请填写用户名 / 密码'
+        : '未自动发现 OpenCode 服务，请确认已启动，或在下方填写服务地址',
+      false
     );
-    els.retryBtn.hidden = false;
-    els.retryBtn.onclick = () => location.reload();
     els.switchModelBtn.hidden = true;
+    els.retryBtn.hidden = true;
+    els.setUrl.value = '';
+    els.setMsg.textContent = d.authNeeded
+      ? '填写访问凭据后点"检测并保存"，或点"重新探测"'
+      : '例：http://127.0.0.1:4096/api（opencode serve 默认端口 4096）';
+    els.setMsg.className = d.authNeeded ? 'err' : '';
+    els.settings.hidden = false;
+    els.setUrl.focus();
+    resizeToFit();
     return;
   }
 
@@ -527,6 +536,19 @@ els.settingsBtn.addEventListener('click', async () => {
 els.setCancel.addEventListener('click', () => {
   els.settings.hidden = true;
   resizeToFit();
+});
+els.setRescan.addEventListener('click', async () => {
+  els.setMsg.textContent = '探测中（含 lsof 扫描 opencode 进程端口）…';
+  els.setMsg.className = '';
+  const r = await window.opencodeFloat.discoverServer();
+  if (r.found) {
+    els.setMsg.textContent = '已连接 ' + r.found + ' ✓ 重载中…';
+    els.setMsg.className = 'ok';
+    setTimeout(() => location.reload(), 700);
+  } else {
+    els.setMsg.textContent = r.authNeeded ? '发现了服务但鉴权不过，请填用户名 / 密码' : '仍未发现，请手动填写服务地址';
+    els.setMsg.className = 'err';
+  }
 });
 els.setSave.addEventListener('click', async () => {
   els.setMsg.textContent = '检测中…';

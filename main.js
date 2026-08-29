@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { execFile } = require('child_process');
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
@@ -118,20 +119,38 @@ ipcMain.handle('api', async (_e, { method, path: apiPath, body }) => {
 });
 
 // ---------- IPC: 服务发现 ----------
+// 从 lsof 抓 opencode 进程实际监听的端口（macOS）
+function lsofPorts() {
+  return new Promise((resolve) => {
+    execFile('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN'], { timeout: 3000 }, (err, stdout) => {
+      if (err || !stdout) return resolve([]);
+      const ports = new Set();
+      for (const line of stdout.split('\n')) {
+        if (!/opencode/i.test(line)) continue;
+        const m = line.match(/:(\d+)\s+\(LISTEN\)/);
+        if (m) ports.add(m[1]);
+      }
+      resolve([...ports]);
+    });
+  });
+}
+
 ipcMain.handle('discover-server', async () => {
   const saved = config.server && config.server.baseURL;
-  const candidates = saved ? [saved, ...DEFAULT_BASES.filter((b) => b !== saved)] : [...DEFAULT_BASES];
+  // 优先级：lsof 实测端口 > 已保存地址 > 常见端口表
+  const lsofBases = (await lsofPorts()).map((p) => `http://127.0.0.1:${p}/api`);
+  const candidates = [...new Set([...lsofBases, ...(saved ? [saved] : []), ...DEFAULT_BASES])];
   let authHit = false;
   for (const base of candidates) {
     const r = await probeBase(base);
     if (r.ok) {
       config.server = Object.assign({}, config.server, { baseURL: base });
       scheduleSave();
-      return { found: base, switched: !!saved && base !== saved, wasSaved: !!saved };
+      return { found: base, switched: !!saved && base !== saved, wasSaved: !!saved, via: lsofBases.includes(base) ? 'lsof' : base === saved ? 'saved' : 'defaults' };
     }
     if (r.authNeeded) authHit = true;
   }
-  return { found: null, authNeeded: authHit };
+  return { found: null, authNeeded: authHit, lsofFound: lsofBases.length };
 });
 
 ipcMain.handle('save-server', async (_e, { baseURL, username, password }) => {

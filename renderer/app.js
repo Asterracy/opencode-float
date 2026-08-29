@@ -3,6 +3,7 @@ const $ = (id) => document.getElementById(id);
 const els = {
   app: $('app'),
   modelSelect: $('modelSelect'),
+  newChatBtn: $('newChatBtn'),
   pinBtn: $('pinBtn'),
   settingsBtn: $('settingsBtn'),
   settings: $('settings'),
@@ -537,6 +538,18 @@ els.modelSelect.addEventListener('change', async () => {
   state.model = model;
   window.opencodeFloat.patchConfig({ model });
   await createSession(model); // 切模型 = 新会话
+});
+els.newChatBtn.addEventListener('click', async () => {
+  if (state.sending) return;
+  els.newChatBtn.disabled = true;
+  const ok = await createSession(state.model); // 丢弃旧 sessionId，重建
+  els.newChatBtn.disabled = false;
+  if (ok) {
+    state.assistantText = '';
+    state.shownLen = 0;
+    showDone('已开新会话 ✓');
+    resizeToFit();
+  }
 });
 els.collapseBtn.addEventListener('click', () => applyCollapse(!state.collapsed));
 els.pinBtn.addEventListener('click', () => {
